@@ -19,7 +19,13 @@ jobs:
         go-version: 1.16
 
     - name: Build
-      run: go build -v ./...
+      run: cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/helm
 
+    - name: Helm tool installer
+      uses: Azure/setup-helm@v1
+      with:
+        # Version of helm
+        version: latest # default is latest
+    - 
     - name: Test
       run: go test -v ./...
