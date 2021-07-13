@@ -25,10 +25,10 @@ jobs:
         version: latest # default is latest
         
     - name: setup
-      run: pushd cloud/kubernetes/helm & ls & helm dep up
+      run: cd cloud/kubernetes/helm & ls & helm dep up
 
     - name: Build
-      run: pushd ../tests/template 
+      run: cd ../tests/template 
 
      
     - name: Test
