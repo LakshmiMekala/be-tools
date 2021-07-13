@@ -26,6 +26,6 @@ jobs:
       with:
         # Version of helm
         version: latest # default is latest
-    - 
+     
     - name: Test
       run: go test -v ./...
