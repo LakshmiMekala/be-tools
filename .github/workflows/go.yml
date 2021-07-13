@@ -25,16 +25,11 @@ jobs:
         version: latest # default is latest
         
     - name: setup
-      run: helm dep up
-      working-directory: ./cloud/kubernetes/helm
+      run: |
+            cd cloud/kubernets/helm
+            helm dep up
+            cd ../tests/template
+            go test -v ./...
       
-    - name: test directory
-      run: ls -R
-      working-directory: cd ./../tests/template 
-
-
-    - name: Test
-      run:  go test -v ./... #cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/helm & go test -v ./...
-#       working-directory: ../tests/template
       
       
