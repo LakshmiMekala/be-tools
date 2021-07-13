@@ -30,7 +30,7 @@ jobs:
             ls
             cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/helm
             helm dep up
-            cd /home/runner/work/be-tools/be-tools/tests/template
+            cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/tests/template
             go test -v ./...
       
       
