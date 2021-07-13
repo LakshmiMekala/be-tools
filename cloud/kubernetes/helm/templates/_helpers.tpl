@@ -1,3 +1,4 @@
+
 {{/* vim: set filetype=mustache: */}}
 {{/*
 Expand the name of the chart.
@@ -7,216 +8,161 @@ Expand the name of the chart.
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{/*
-Create a default fully qualified name for deployment, services, configMap, volumes, etc.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "beinferenceagent.fullname" -}}
-{{- .Values.inferencenode.name -}}
+{{- define "bechart.discoveryservice.name" -}}
+{{ .Release.Name }}-discovery-service
 {{- end -}}
 
-{{- define "becacheagent.fullname" -}}
-{{- .Values.cachenode.name -}}
-{{- end -}}
-
-{{- define "bediscoverynode.fullname" -}}
-{{- .Values.discoverynode.name -}}
-{{- end -}}
-
-{{- define "mysql.fullname" -}}
-{{- .Values.mysql.name -}}
-{{- end -}}
-
-{{- define "beservice.fullname" -}}
-{{ .Values.beservice.name }}
-{{- end -}}
-
-{{- define "discoveryservice.fullname" -}}
-{{ .Values.discoveryservice.name }}
-{{- end -}}
-
-{{- define "jmxservice.fullname" -}}
-{{ .Values.jmxservice.name }}
-{{- end -}}
-
-{{- define "mysqlservice.fullname" -}}
-{{ .Values.mysqlservice.name }}
-{{- end -}}
-
-{{- define "commonconfigmap.fullname" -}}
-{{ .Values.configmap.name }}
-{{- end -}}
-
-{{- define "eksconfigmap.fullname" -}}
-{{ .Values.persistentvolumes.eks.configmap.name }}
-{{- end -}}
-
-{{- define "azurestorageclass.fullname" -}}
-{{ .Values.volumes.azure.storageClassName }}
-{{- end -}}
-
-{{- define "eksstorageclass.fullname" -}}
-{{ .Values.persistentvolumes.eks.storageclass.name }}
-{{- end -}}
-
-{{- define "eksdeployment.fullname" -}}
-{{ .Values.persistentvolumes.eks.deployment.name }}
-{{- end -}}
-
-{{- define "openshiftPV.fullname" -}}
-{{ .Values.persistentvolumes.openshift.volume.name }}
-{{- end -}}
-
-{{/*
-Create a volume mount and volume claim template for sharedNothing
-*/}}
-{{- define "sharedNothing.volumeMount" -}}
-{{- if eq .Values.persistentType "sharedNothing" }}
+{{- define "bechart.volumeMounts" }}
+{{- if or (eq $.Values.bsType "sharednothing") $.Values.persistence.logs $.Values.enableRMS $.Values.rmsDeployment }}
 volumeMounts:
-  - mountPath: {{ .Values.volumes.snmountPath }}
-    name: {{ .Values.volumes.snmountVolume }}
+{{- end }}
+{{- if eq .Values.bsType "sharednothing" }}
+- name: data-store
+  mountPath: "/mnt/tibco/be/data-store"
+{{- end }}
+{{- if .Values.persistence.logs }}
+- name: logs
+  mountPath: "/mnt/tibco/be/logs"
+{{- end }}
+{{- if or .Values.enableRMS .Values.rmsDeployment }}
+- name: rms-shared
+  mountPath: "/opt/tibco/be/{{ .Values.beShortVersion }}/rms/shared"
+{{- end }}
+{{- if .Values.rmsDeployment }}
+{{- if .Values.persistence.rmsSecurity }}
+- name: rms-security
+  mountPath: "/opt/tibco/be/{{ .Values.beShortVersion }}/rms/config/security"
+{{- end }}
+{{- if .Values.persistence.rmsWebstudio }}
+- name: rms-webstudio
+  mountPath: "/opt/tibco/be/{{ .Values.beShortVersion }}/examples/standard/WebStudio"
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "bechart.volumes" }}
+{{- if or (eq $.Values.bsType "sharednothing") $.Values.persistence.logs $.Values.enableRMS $.Values.rmsDeployment }}
+volumes:
+{{- end }}
+{{- range $i, $vName := tuple "data-store" "logs" "rms-shared" "rms-security" "rms-webstudio" }}
+{{- if or (and (eq $vName "data-store") (eq $.Values.bsType "sharednothing")) (and (eq $vName "logs") $.Values.persistence.logs) (and (eq $vName "rms-shared") (or $.Values.enableRMS $.Values.rmsDeployment)) (and (eq $vName "rms-security") $.Values.persistence.rmsSecurity $.Values.rmsDeployment) (and (eq $vName "rms-webstudio") $.Values.persistence.rmsWebstudio $.Values.rmsDeployment) }}
+- name: {{ $vName }}
+  persistentVolumeClaim:
+{{- if and (eq $vName "rms-shared") $.Values.enableRMS }}
+    claimName: {{ $.Values.persistence.rmsSharedPVC }}
+{{- else }}
+    claimName: {{ $.Release.Name }}-{{ $vName }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "bechart.volumeClaimTemplates" }}
+{{- if or (eq $.Values.bsType "sharednothing") $.Values.persistence.logs $.Values.enableRMS $.Values.rmsDeployment }}
+volumeClaimTemplates:
+{{- end }}
+{{- range $i, $vName := tuple "data-store" "logs" "rms-shared" "rms-security" "rms-webstudio" }}
+{{- if or (and (eq $vName "data-store") (eq $.Values.bsType "sharednothing")) (and (eq $vName "logs") $.Values.persistence.logs) (and (eq $vName "rms-shared") (or $.Values.enableRMS $.Values.rmsDeployment)) (and (eq $vName "rms-security") $.Values.persistence.rmsSecurity $.Values.rmsDeployment) (and (eq $vName "rms-webstudio") $.Values.persistence.rmsWebstudio $.Values.rmsDeployment) }}
+- metadata:
+    name: {{ $vName }}
+  spec:
+    accessModes: [ "ReadWriteOnce" ]
+{{- include "bechart.storageclass" $ | indent 4 }}
+    resources:
+      requests:
+        storage: {{ $.Values.persistence.size }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "bechart.storageclass" }}
+{{- if empty .Values.persistence.storageClass }}
+storageClassName:
+{{- else if eq .Values.persistence.storageClass "-" }}
+storageClassName: ""
+{{- else }}
+storageClassName: {{ .Values.persistence.storageClass }}
+{{- end }}
+{{- end }}
+
+{{- define "bechart.resourceLimits" }}
+resources:
+  requests:
+    memory: "{{ .resources.memoryRequest }}"
+    cpu: "{{ .resources.cpuRequest }}"
+  limits:
+    memory: "{{ .resources.memoryLimit }}"
+    cpu: "{{ .resources.cpuLimit }}"
+{{- end }}
+
+{{- define "beimagepullsecret.fullname" }}
+{{- if .Values.imageCredentials.registry }}
+{{- .Release.Name }}-beimagepullsecret
+{{- end }}
+{{- end }}
+
+{{- define "imagePullSecret" }}
+{{- with .Values.imageCredentials }}
+{{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"email\":\"%s\",\"auth\":\"%s\"}}}" .registry .username .password .email (printf "%s:%s" .username .password | b64enc) | b64enc }}
+{{- end }}
+{{- end }}
+
+{{- define "bechart.discovery.env" }}
+{{- if eq .Values.cmType "as2" }}
+- name: AS_DISCOVER_URL
+  value: tcp://
+{{- range $i, $agent := $.Values.agents -}}
+{{- range $j, $e := until (int $agent.discoverableReplicas) -}}
+{{ $.Release.Name }}-{{ $agent.name }}-{{ $j }}.{{ include "bechart.discoveryservice.name" $ }}:50000;
+{{- end }}
+{{- end }}
+{{- else if eq .Values.cmType "ignite" }}
+- name: "tra.be.ignite.k8s.service.name"
+  value: "{{ include "bechart.discoveryservice.name" $ }}"
+- name: "tra.be.ignite.discovery.type"
+  value: "k8s"
+- name: "tra.be.ignite.k8s.namespace"
+  value: "default"
+{{- end }}
+{{- end }}
+
+{{- define "healthcheck" -}}
+{{- if eq .Values.healthcheck.enabled true }}
+livenessProbe:
+  tcpSocket:
+    port: {{ .Values.healthcheck.livenessProbe.port }}
+  initialDelaySeconds: {{ .Values.healthcheck.livenessProbe.initialDelaySeconds }}
+  periodSeconds: {{ .Values.healthcheck.livenessProbe.periodSeconds }} 
+readinessProbe:
+  tcpSocket:
+    port: {{ .Values.healthcheck.readinessProbe.port }}
+  initialDelaySeconds: {{ .Values.healthcheck.readinessProbe.initialDelaySeconds }}
+  periodSeconds: {{ .Values.healthcheck.readinessProbe.periodSeconds }} 
 {{- end }}
 {{- end -}}
 
-{{- define "sharedNothing.volumeClaim" -}}
-{{- if eq .Values.persistentType "sharedNothing" }}
-  volumeClaimTemplates:
-    - metadata:
-        name: {{ .Values.volumes.snmountVolume }}
-        {{- if ne .Values.cloudProvider "openshift" }}
-        annotations:
-          volume.beta.kubernetes.io/storage-class: {{ .Values.volumes.storageClass }}
-      spec:
-        accessModes: {{ .Values.volumes.accessModes }}
-        {{- else }}
-      spec:
-        accessModes: {{ .Values.volumes.accessModes }}
-        volumeName: {{ .Values.volumes.snclaimVolume }}
-        {{- end }}
-        resources:
-          requests:
-            storage: {{ .Values.volumes.storage }}
+{{- define "pullsecrets" -}}
+{{- if or (.Values.imagepullsecret) (.Values.imageCredentials.registry) }}
+imagePullSecrets:
+  {{- if .Values.imagepullsecret }}
+  - name: {{ .Values.imagepullsecret }}
+  {{- else  }}
+  - name: {{ include "beimagepullsecret.fullname" . }}
+  {{- end  }}
+{{- end}}  
+{{- end -}}
+
+{{- define "bechart.affinity" }}
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: name
+              operator: In
+              values:
+              - "{{ . }}"
+          topologyKey: "kubernetes.io/hostname"
 {{- end }}
-{{- end -}}
-
-
-{{/*
-Create a DB configMap environment details for sharedAll
-*/}}
-{{- define "sharedAll.configMap" -}}
-{{- if eq .Values.persistentType "sharedAll" }}
-- name: {{ .Values.database.drivername }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.driverval }}
-- name: {{ .Values.database.urlname }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.urlval }}
-- name: {{ .Values.database.username }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.userval }}
-- name: {{ .Values.database.pwdname }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.pwdval }}
-- name: {{ .Values.database.poolsizename }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.poolsizeval }}
-- name: {{ .Values.database.logintimeoutname }}
-  valueFrom:
-    configMapKeyRef:
-      name: {{ .Values.database.name }}
-      key: {{ .Values.database.logintimeoutval }}
-{{- end }}
-{{- end -}}
-
-
-{{/*
-Create a volume mount and volume claim template for sharedAll
-*/}}
-{{- define "sharedAll.volumeMount" -}}
-{{- if eq .Values.persistentType "sharedAll" }}
-volumeMounts:
-  - mountPath: {{ .Values.volumes.samountPath }}
-    name: {{ .Values.volumes.samountVolume }}
-{{- end }}
-{{- end -}}
-
-{{- define "sharedAll.volumeClaim" -}}
-{{- if eq .Values.persistentType "sharedAll" }}
-  volumeClaimTemplates:
-    - metadata:
-        name: {{ .Values.volumes.samountVolume }}
-        {{- if ne .Values.cloudProvider "openshift" }}
-        annotations:
-          volume.beta.kubernetes.io/storage-class: {{ .Values.volumes.storageClass }}
-      spec:
-        accessModes: {{ .Values.volumes.accessModes }}
-        {{- else }}
-      spec:
-        accessModes: {{ .Values.volumes.accessModes }}
-        volumeName: {{ .Values.volumes.saclaimVolume }}
-        {{- end }}
-        resources:
-          requests:
-            storage: {{ .Values.volumes.storage }}
-{{- end }}
-{{- end -}}
-
-{{/*
-Create a common DB configMap data details for sharedAll
-*/}}
-{{- define "commonconfigmap.data" -}}
-data:
-  db_driver: "{{ .Values.configmap.dbdriver }}"
-  db_url: "{{ .Values.configmap.dburl }}"
-  db_username: "{{ .Values.configmap.dbusername }}"
-  db_pwd: "{{ .Values.configmap.dbpwd }}"
-  db_pool_size: "{{ .Values.configmap.dbpoolsize }}"
-  db_login_timeout: "{{ .Values.configmap.dblogintimeout }}"
-{{- end -}}
-
-{{/*
-Create a EKS DB configMap data details
-*/}}
-{{- define "eksconfigmap.data" -}}
-data:
-  file.system.id: {{ .Values.persistentvolumes.eks.configmap.filesystemid }}
-  aws.region: {{ .Values.persistentvolumes.eks.configmap.awsregion }}
-  provisioner.name: {{ .Values.persistentvolumes.eks.configmap.provisionername }}
-{{- end -}}
-
-{{/*
-Create a openshift persistent volume details
-*/}}
-{{- define "openshiftPV.details" -}}
-  capacity:
-    storage: {{ .Values.persistentvolumes.openshift.volume.storage }}
-  accessModes:
-    - {{ .Values.persistentvolumes.openshift.volume.accessModes }}
-  persistentVolumeReclaimPolicy: {{ .Values.persistentvolumes.openshift.volume.persistentVolumeReclaimPolicy }}
-{{- end -}}
-
-{{/*
-Create a openshift NFS path details for sharedNothing and sharedAll
-*/}}
-{{- define "openshiftNFSsharedNothing.path" -}}
-  nfs:
-    server: {{ .Values.persistentvolumes.openshift.volume.nfs.server }}
-    path: {{ .Values.persistentvolumes.openshift.volume.nfs.snpath }}
-{{- end -}}
-
-{{- define "openshiftNFSsharedAll.path" -}}
-  nfs:
-    server: {{ .Values.persistentvolumes.openshift.volume.nfs.server }}
-    path: {{ .Values.persistentvolumes.openshift.volume.nfs.sapath }}
-{{- end -}}

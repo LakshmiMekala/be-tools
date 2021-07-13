@@ -1,5 +1,5 @@
 @echo off
-@rem Copyright (c) 2019. TIBCO Software Inc.
+@rem Copyright (c) 2019-2020. TIBCO Software Inc.
 @rem This file is subject to the license terms contained in the license file that is distributed with this file.
 
 ping chocolatey.org -n 1 -w 20000
@@ -16,4 +16,4 @@ REM Upgrade Chocolatey Package Manager, if needed
 powershell -Command "c:\ProgramData\chocolatey\bin\choco upgrade chocolatey | out-null"
 
 REM Install Missing MSVC Redistributable Libraries (MSVC{p|i|r}*.*)
-powershell -Command "c:\ProgramData\chocolatey\bin\choco install -y vcredist2005 vcredist2008 vcredist2010 vcredist2012 vcredist2013 vcredist140 | out-null"
+powershell -Command "c:\ProgramData\chocolatey\bin\choco install -y vcredist2005 vcredist2008 vcredist2010 vcredist2012 vcredist2013 vcredist140 "
