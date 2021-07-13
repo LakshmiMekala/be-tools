@@ -26,9 +26,10 @@ jobs:
         
     - name: setup
       run: |
-            cd cloud/kubernets/helm
+            pwd
+            cd ./cloud/kubernets/helm
             helm dep up
-            cd ../tests/template
+            cd ./../tests/template
             go test -v ./...
       
       
