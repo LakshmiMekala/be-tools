@@ -28,9 +28,9 @@ jobs:
       run: |
             pwd
             ls
-            cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/helm
+            cd cloud/kubernetes/helm
             helm dep up
-            cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/tests/template
+            cd ../tests/template
             go test -v ./...
       
       
