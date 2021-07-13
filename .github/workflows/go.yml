@@ -26,13 +26,13 @@ jobs:
         
     - name: setup
       run: helm dep up
-      working-directory: cloud/kubernetes/helm
+      working-directory: ./cloud/kubernetes/helm
       
     - name: test directory
       run: ls -R
-      working-directory: cd ../tests/template 
+      working-directory: cd ./../tests/template 
 
-     
+
     - name: Test
       run:  go test -v ./... #cd /home/runner/work/be-tools/be-tools/cloud/kubernetes/helm & go test -v ./...
 #       working-directory: ../tests/template
