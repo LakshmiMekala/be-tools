@@ -27,6 +27,7 @@ jobs:
     - name: setup
       run: |
             pwd
+            ls
             cd /home/runner/work/be-tools/be-tools/cloud/kubernets/helm
             helm dep up
             cd /home/runner/work/be-tools/be-tools/tests/template
