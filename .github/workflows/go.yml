@@ -17,12 +17,18 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.16
-        
-    - name: Helm tool installer
-      uses: Azure/setup-helm@v1
-      with:
-        # Version of helm
-        version: latest # default is latest
+    - name: Install Helm
+      run: |
+          apt-get update -y 
+          apt-install wget tar
+          wget https://get.helm.sh/helm-v3.1.1-linux-amd64.tar.gz
+          tar -zxvf helm-v3.1.1-linux-amd64.tar.gz
+          sudo mv linux-amd64/helm /usr/local/bin/helm    
+#     - name: Helm tool installer
+#       uses: Azure/setup-helm@v1
+#       with:
+#         # Version of helm
+#         version: latest # default is latest
         
     - name: setup
       run: |
